@@ -1,27 +1,29 @@
-import xlwings as xw
-import pandas as pd
-import os
 import pymsgbox
 
-from update import UpdateTable
+import handler
+from handler import FSHandler
 
 
 def update_screener():
-    update = UpdateTable('AAPL')
-    update.table_to_ticker_list('screener')
-    update.extract_fs_data()
-    update.data_to_table()
+    update = FSHandler('screener')
+    update.rule1_data_to_table()
 
-# TODO: Make functions below
+
 def update_watchlist():
-    pass
+    update = FSHandler('watchlist')
+    update.rule1_data_to_table()
 
 
 def move_to_watchlist():
-    pass
+    ticker = handler.ask_ticker_to_user()
+
+    with FSHandler('screener') as mover:
+        mover.delete_ticker_from_table(ticker)
+        mover.add_ticker_to_table(ticker, sheet_name='watchlist')
 
 
 def move_to_portfolio():
+    # TODO: Make functions below
     pass
 
 
@@ -31,3 +33,11 @@ def show_user_instructions(sheet_name):
         pymsgbox.confirm('test')
     else:
         pymsgbox.confirm('test')
+
+
+def access_financial_statement():
+    ticker = handler.ask_ticker_to_user()
+
+    # Create an object to have access to the functions required to open the excel file
+    access = FSHandler('screener')
+    access.open_fs_excel_file(ticker)
