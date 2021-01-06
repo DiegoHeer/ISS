@@ -91,6 +91,10 @@ class FSHandler:
             pymsgbox.alert(f"The ticker {ticker} is not present in the {self.sheet_name} table.")
             exit()
 
+        # Remove filter from table if there is
+        self.table.ShowAutoFilter = False
+        self.table.ShowAutoFilter = True
+
         # Delete row that has the ticker
         for i in range(1, self.table.ListRows.Count + 1):
             if self.table.ListColumns('Ticker').DataBodyRange(i).Value == ticker:
@@ -111,6 +115,19 @@ class FSHandler:
         self.table.ListRows.Add(AlwaysInsert=True)
         last_row = self.table.ListRows.Count
         self.table.ListColumns('Ticker').DataBodyRange(last_row).Value = ticker
+
+        # Add suggestions to unfilled qualitative columns
+        self.watchlist_status_suggestion(last_row)
+
+        # Change status of ticker in watchlist
+        self.table.ListColumns('Status').DataBodyRange(last_row).Value = "New"
+
+    def watchlist_status_suggestion(self, row):
+        # Check status suggestion for unfilled cells in user evaluation columns
+        columns = ['Personal Approval', 'Meaning Approved', 'Management Approved']
+        for header in columns:
+            if self.table.ListColumns(header).DataBodyRange(row).Value is None:
+                self.table.ListColumns(header).DataBodyRange(row).Value = "CHECK"
 
     def check_validity_excel_file(self, ticker):
         excel_path = self.get_fs_excel_path(ticker)
@@ -163,3 +180,7 @@ class FSHandler:
 
                 # Change status of ticker in table
                 self.table.ListColumns('Status').DataBodyRange(i).Value = 'Updated'
+
+                # Add suggestions to unfilled qualitative columns if it is watchlist
+                if self.sheet_name == 'Watchlist':
+                    self.watchlist_status_suggestion(i)
