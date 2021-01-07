@@ -24,11 +24,22 @@ def get_fs_dir_path():
     return join(module_path, 'financial_files', 'excel')
 
 
+def load_json_file(json_path):
+    with open(json_path, 'r') as file:
+        json_file = json.load(file)
+
+    return json_file
+
+
+def save_json_file(json_file, json_file_path):
+    with open(json_file_path, 'w') as file:
+        json.dump(json_file, file, indent=4, sort_keys=True)
+
+
 def translate_dict_keys(rule1_dict, sheet_name):
     # Translate dictionary, substituting current keys by table keys
     translation_dict_path = join(dirname(__file__), 'data', 'iss_translation_dict.json')
-    with open(translation_dict_path, 'r') as file:
-        translation_dict = json.load(file)
+    translation_dict = load_json_file(translation_dict_path)
 
     table_header_list = translation_dict[sheet_name]['table_headers']
     rule1_metrics_list = translation_dict[sheet_name]['rule1_metrics']
@@ -53,6 +64,8 @@ class FSHandler:
         self.ws = self.wb.sheets[self.sheet_name].api
         self.table = self.ws.ListObjects(self.sheet_name)
         self.fs_dir = get_fs_dir_path()
+
+        self.ticker_dump_dict_path = join(dirname(__file__), 'data', 'ticker_dump_dict.json')
 
     def __enter__(self):
         return self
@@ -168,8 +181,20 @@ class FSHandler:
                            "All tickers already updated")
             exit()
 
+        # Get list of tickers that were dumped, for later comparison
+        dumped_tickers = self.get_dumped_tickers()
+
         for i in range(1, self.table.ListRows.Count + 1):
             ticker = self.table.ListColumns('Ticker').DataBodyRange(i).Value
+
+            # Check if ticker already has been deleted previously for not satisfying MOAT requirements
+            if ticker in dumped_tickers:
+                user_answer = pymsgbox.confirm(
+                    f"The ticker {ticker} was previously dumped for failing MOAT requirements. "
+                    f"Still want to continue updating for this ticker?",
+                    "Ticker previously dumped", buttons=(pymsgbox.YES_TEXT, pymsgbox.NO_TEXT))
+                if user_answer == pymsgbox.NO_TEXT:
+                    continue
 
             if ticker in ticker_list:
                 rule1_dict = self.extract_rule1_metrics_data(ticker)
@@ -184,3 +209,63 @@ class FSHandler:
                 # Add suggestions to unfilled qualitative columns if it is watchlist
                 if self.sheet_name == 'Watchlist':
                     self.watchlist_status_suggestion(i)
+
+    def dumb_non_approved_tickers(self, bool_check_included=False):
+        # Load the json file were the dumped tickers will be hold
+        ticker_dump_dict = load_json_file(self.ticker_dump_dict_path)
+
+        # List that will be used later to delete the tickers from the table
+        ticker_removal_list = list()
+
+        # Initiate loop to fill in the dump dictionary
+        for i in range(1, self.table.ListRows.Count + 1):
+            ticker = self.table.ListColumns('Ticker').DataBodyRange(i).Value
+            moat_approval = self.table.ListColumns('MOAT Approval').DataBodyRange(i).Value
+            status = self.table.ListColumns('Status').DataBodyRange(i).Value
+
+            # Define metrics that will be added to the dictionary
+            company_name = self.table.ListColumns('Company Name').DataBodyRange(i).Value
+            roic_approval = self.table.ListColumns('ROIC Approval').DataBodyRange(i).Value
+            roic_quickfs_approval = self.table.ListColumns('ROIC QuickFS Approval').DataBodyRange(i).Value
+            equity_approval = self.table.ListColumns('Equity Approval').DataBodyRange(i).Value
+            eps_approval = self.table.ListColumns('EPS Approval').DataBodyRange(i).Value
+            sales_approval = self.table.ListColumns('Sales Approval').DataBodyRange(i).Value
+            fcf_approval = self.table.ListColumns('FCF Approval').DataBodyRange(i).Value
+            ocf_approval = self.table.ListColumns('OCF Approval').DataBodyRange(i).Value
+            debt_payoff_approval = self.table.ListColumns('Debt - Payoff Possible').DataBodyRange(i).Value
+
+            if status == "Updated":
+                if moat_approval is False or (moat_approval == "CHECK" and bool_check_included is True):
+                    # Add parameters to the dictionary
+                    ticker_dump_dict[ticker] = dict()
+                    ticker_dump_dict[ticker]['moat_approval'] = moat_approval
+                    ticker_dump_dict[ticker]['company_name'] = company_name
+                    ticker_dump_dict[ticker]['roic_approval'] = roic_approval
+                    ticker_dump_dict[ticker]['roic_quickfs_approval'] = roic_quickfs_approval
+                    ticker_dump_dict[ticker]['equity_approval'] = equity_approval
+                    ticker_dump_dict[ticker]['eps_approval'] = eps_approval
+                    ticker_dump_dict[ticker]['sales_approval'] = sales_approval
+                    ticker_dump_dict[ticker]['fcf_approval'] = fcf_approval
+                    ticker_dump_dict[ticker]['ocf_approval'] = ocf_approval
+                    ticker_dump_dict[ticker]['debt_payoff_approval'] = debt_payoff_approval
+
+                    # Add ticker to list
+                    ticker_removal_list.append(ticker)
+
+        # Save the dumped tickers to the json file
+        save_json_file(ticker_dump_dict, self.ticker_dump_dict_path)
+
+        # Delete the dumped ticker rows from the table
+        for dumped_ticker in ticker_removal_list:
+            self.delete_ticker_from_table(dumped_ticker)
+
+    def get_dumped_tickers(self):
+        # Load the json file were the dumped tickers are hold
+        ticker_dump_dict = load_json_file(self.ticker_dump_dict_path)
+
+        # Make list of the dumped tickers
+        dumped_ticker_list = list()
+        for key, value in ticker_dump_dict.items():
+            dumped_ticker_list.append(key)
+
+        return dumped_ticker_list

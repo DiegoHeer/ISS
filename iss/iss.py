@@ -41,3 +41,13 @@ def access_financial_statement():
     # Create an object to have access to the functions required to open the excel file
     access = FSHandler('screener')
     access.open_fs_excel_file(ticker)
+
+
+def remove_non_approved_tickers():
+    user_answer = pymsgbox.confirm("Remove also tickers were the MOAT needs to be checked?", "Ticker Removal",
+                                   (pymsgbox.YES_TEXT, pymsgbox.NO_TEXT))
+    remover = FSHandler('screener')
+    if user_answer == pymsgbox.YES_TEXT:
+        remover.dumb_non_approved_tickers(True)
+    else:
+        remover.dumb_non_approved_tickers(False)

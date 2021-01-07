@@ -1,0 +1,110 @@
+{
+    "AFLYY": {
+        "company_name": "AIR FRANCE-KLM",
+        "debt_payoff_approval": false,
+        "eps_approval": false,
+        "equity_approval": false,
+        "fcf_approval": false,
+        "moat_approval": false,
+        "ocf_approval": false,
+        "roic_approval": false,
+        "roic_quickfs_approval": false,
+        "sales_approval": false
+    },
+    "BA": {
+        "company_name": "Boeing Company (The)",
+        "debt_payoff_approval": false,
+        "eps_approval": false,
+        "equity_approval": false,
+        "fcf_approval": false,
+        "moat_approval": false,
+        "ocf_approval": false,
+        "roic_approval": false,
+        "roic_quickfs_approval": false,
+        "sales_approval": false
+    },
+    "BDRAF": {
+        "company_name": "BOMBARDIER INC",
+        "debt_payoff_approval": false,
+        "eps_approval": false,
+        "equity_approval": false,
+        "fcf_approval": false,
+        "moat_approval": false,
+        "ocf_approval": false,
+        "roic_approval": false,
+        "roic_quickfs_approval": false,
+        "sales_approval": false
+    },
+    "CIOXY": {
+        "company_name": "CIELO SA",
+        "debt_payoff_approval": false,
+        "eps_approval": false,
+        "equity_approval": false,
+        "fcf_approval": false,
+        "moat_approval": false,
+        "ocf_approval": false,
+        "roic_approval": false,
+        "roic_quickfs_approval": false,
+        "sales_approval": false
+    },
+    "DIS": {
+        "company_name": "Walt Disney Company (The)",
+        "debt_payoff_approval": false,
+        "eps_approval": false,
+        "equity_approval": false,
+        "fcf_approval": false,
+        "moat_approval": false,
+        "ocf_approval": false,
+        "roic_approval": false,
+        "roic_quickfs_approval": false,
+        "sales_approval": false
+    },
+    "EADSF": {
+        "company_name": "AIRBUS SE",
+        "debt_payoff_approval": false,
+        "eps_approval": false,
+        "equity_approval": false,
+        "fcf_approval": false,
+        "moat_approval": false,
+        "ocf_approval": false,
+        "roic_approval": false,
+        "roic_quickfs_approval": false,
+        "sales_approval": false
+    },
+    "GPRO": {
+        "company_name": "GoPro, Inc.",
+        "debt_payoff_approval": 0.0,
+        "eps_approval": false,
+        "equity_approval": false,
+        "fcf_approval": false,
+        "moat_approval": false,
+        "ocf_approval": false,
+        "roic_approval": false,
+        "roic_quickfs_approval": false,
+        "sales_approval": false
+    },
+    "LNVGY": {
+        "company_name": "LENOVO GROUP LIMITED",
+        "debt_payoff_approval": false,
+        "eps_approval": false,
+        "equity_approval": false,
+        "fcf_approval": false,
+        "moat_approval": false,
+        "ocf_approval": false,
+        "roic_approval": false,
+        "roic_quickfs_approval": false,
+        "sales_approval": false
+    },
+    "RYCEF": {
+        "company_name": "ROLLS ROYCE HOLDINGS",
+        "debt_payoff_approval": false,
+        "eps_approval": false,
+        "equity_approval": false,
+        "fcf_approval": false,
+        "moat_approval": false,
+        "ocf_approval": false,
+        "roic_approval": false,
+        "roic_quickfs_approval": false,
+        "sales_approval": false
+    }
+}
