@@ -12,6 +12,7 @@ def update_screener():
 def update_watchlist():
     update = FSHandler('watchlist')
     update.rule1_data_to_table()
+    update.ta_to_watchlist()
 
 
 def move_to_watchlist():
@@ -41,6 +42,18 @@ def access_financial_statement():
     # Create an object to have access to the functions required to open the excel file
     access = FSHandler('screener')
     access.open_fs_excel_file(ticker)
+
+
+def see_technical_analysis_chart():
+    ticker = handler.ask_ticker_to_user()
+
+    # TODO: create the see_technical_analysis_chart()
+
+
+def see_trading_view_chart():
+    ticker = handler.ask_ticker_to_user()
+
+    # TODO: create the see_trading_view_chart()
 
 
 def remove_non_approved_tickers():

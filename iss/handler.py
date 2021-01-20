@@ -6,6 +6,7 @@ from os.path import dirname, join
 
 import quickfs_scraping.process
 from quickfs_scraping.excel_handler import excel_to_dataframe, check_validity_output_file, excel_sheet_exists
+from technical_analysis.ta import TA
 
 
 def ask_ticker_to_user():
@@ -172,6 +173,24 @@ class FSHandler:
         rule1_dict = translate_dict_keys(rule1_dict, self.sheet_name)
 
         return rule1_dict
+
+    def ta_to_watchlist(self):
+        # This function gets the most recent buy-sell signals and puts them in the watchlist
+        if self.sheet_name == 'Watchlist':
+            for i in range(1, self.table.ListRows.Count + 1):
+                ticker = self.table.ListColumns('Ticker').DataBodyRange(i).Value
+
+                ta_data = TA(ticker)
+                ta_data.get_price_history()
+                ta_data.get_indicators()
+
+                self.table.ListColumns('MACD Status').DataBodyRange(i).Value = ta_data.get_macd_buy_sell().upper()
+                self.table.ListColumns('MA Status').DataBodyRange(i).Value = ta_data.get_ma10_buy_sell().upper()
+                self.table.ListColumns('Stochastics Status').DataBodyRange(
+                    i).Value = ta_data.get_stoch_buy_sell().upper()
+
+        else:
+            pass
 
     def rule1_data_to_table(self):
         ticker_list = self.table_to_ticker_list()
