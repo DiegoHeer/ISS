@@ -46,8 +46,7 @@ def access_financial_statement():
 
 def see_technical_analysis_chart():
     ticker = handler.ask_ticker_to_user()
-
-    # TODO: create the see_technical_analysis_chart()
+    handler.gen_technical_analysis_chart(ticker)
 
 
 def see_trading_view_chart():
