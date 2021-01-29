@@ -3,8 +3,11 @@ import pymsgbox
 import json
 import os
 from os.path import dirname, join
+import requests
+from bs4 import BeautifulSoup
 
 import quickfs_scraping.process
+import quickfs_scraping.api_scraping
 from quickfs_scraping.excel_handler import excel_to_dataframe, check_validity_output_file, excel_sheet_exists
 from technical_analysis.ta import TA
 
@@ -65,6 +68,16 @@ def translate_dict_keys(rule1_dict, sheet_name):
 
 def gen_fs_excel_file(ticker):
     quickfs_scraping.process.run(ticker, bool_batch=True)
+
+
+def get_full_featured_tradingview_chart(base_url):
+    req = requests.get(base_url).content
+    soup = BeautifulSoup(req, features='lxml')
+
+    start_link = soup.find('a', class_='tv-goto-chart-button tv-goto-chart-button--mobile js-go-to-chart-button-mobile',
+                     target="_blank")
+
+    return "https://www.tradingview.com" + str(start_link.get('href'))
 
 
 class FSHandler:

@@ -1,4 +1,5 @@
 import pymsgbox
+import webbrowser
 
 import handler
 from handler import FSHandler
@@ -52,7 +53,12 @@ def see_technical_analysis_chart():
 def see_trading_view_chart():
     ticker = handler.ask_ticker_to_user()
 
-    # TODO: create the see_trading_view_chart()
+    # Home page url on tradingview.com about the stock
+    base_url = rf"https://www.tradingview.com/symbols/{ticker}/"
+
+    # get chart link and open it in the browser
+    chart_link = handler.get_full_featured_tradingview_chart(base_url)
+    webbrowser.open(chart_link)
 
 
 def remove_non_approved_tickers():
@@ -63,3 +69,7 @@ def remove_non_approved_tickers():
         remover.dumb_non_approved_tickers(True)
     else:
         remover.dumb_non_approved_tickers(False)
+
+
+if __name__ == '__main__':
+    see_trading_view_chart()
