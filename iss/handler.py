@@ -86,8 +86,10 @@ class FSHandler:
         self.wb = xw.Book.caller()
         self.wb_path = self.wb.fullname
         self.ws = self.wb.sheets[self.sheet_name].api
-        self.table = self.ws.ListObjects(self.sheet_name)
         self.fs_dir = get_fs_dir_path()
+
+        if self.sheet_name != "Portfolio":
+            self.table = self.ws.ListObjects(self.sheet_name)
 
         self.ticker_dump_dict_path = join(dirname(__file__), 'data', 'ticker_dump_dict.json')
 

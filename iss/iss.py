@@ -1,8 +1,13 @@
 import pymsgbox
 import webbrowser
+import xlwings as xw
 
 import handler
 from handler import FSHandler
+import portfolio
+
+import pandas as pd
+import json
 
 
 def update_screener():
@@ -25,7 +30,7 @@ def move_to_watchlist():
 
 
 def move_to_portfolio():
-    # TODO: Make functions below
+    # TODO: Make functions for move_to_portfolio
     pass
 
 
@@ -50,8 +55,13 @@ def see_technical_analysis_chart():
     handler.gen_technical_analysis_chart(ticker)
 
 
-def see_trading_view_chart():
-    ticker = handler.ask_ticker_to_user()
+def see_trading_view_chart(sheet_name=None):
+    if sheet_name is not None:
+        wb = xw.Book.caller()
+        ws = wb.sheets[sheet_name].api
+        ticker = ws.OLEObjects("TickerBox").Object.Value
+    else:
+        ticker = handler.ask_ticker_to_user()
 
     # Home page url on tradingview.com about the stock
     base_url = rf"https://www.tradingview.com/symbols/{ticker}/"
@@ -71,5 +81,55 @@ def remove_non_approved_tickers():
         remover.dumb_non_approved_tickers(False)
 
 
-if __name__ == '__main__':
-    see_trading_view_chart()
+def portfolio_ticker_selection():
+    portfolio.tester()
+    pass
+
+
+def portfolio_new_entry():
+    test = portfolio.Portfolio()
+    test.get_portfolio_dict()
+    pymsgbox.confirm(test.dict_to_df())
+
+    # TODO: Make functions for portfolio_new_entry
+    pass
+
+
+def portfolio_update_all():
+    # TODO: Make functions for portfolio_update_all
+    pass
+
+
+def portfolio_buy():
+    # TODO: Make functions for portfolio_buy
+    pass
+
+
+def portfolio_sell():
+    # TODO: Make functions for portfolio_sell
+    pass
+
+
+def portfolio_update_ta():
+    # TODO: Make functions for portfolio_update_ta
+    pass
+
+
+def portfolio_update_rule1():
+    # TODO: Make functions for portfolio_update_rule1
+    pass
+
+
+def portfolio_open_last_annual_report():
+    # TODO: Make functions for portfolio_open_last_annual_report
+    pass
+
+
+def portfolio_open_last_quarterly_report():
+    # TODO: Make functions for portfolio_open_last_quarterly_report
+    pass
+
+
+def portfolio_still_to_be_defined():
+    # TODO: Make functions for portfolio_still_to_be_defined
+    pass
