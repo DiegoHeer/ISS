@@ -40,14 +40,14 @@ def save_json_file(json_file, json_file_path):
         json.dump(json_file, file, indent=4, sort_keys=True)
 
 
-def gen_technical_analysis_chart(ticker):
+def gen_technical_analysis_chart(ticker, show_fig=True):
     months_observations = 3
     chart_storage_path = r"D:\PythonProjects\iss\iss\data\ta_charts"
 
     chart = TA(ticker)
     chart.get_price_history()
     chart.get_indicators()
-    chart.plot_chart(months_observations, fig_dir=chart_storage_path, show_fig=True)
+    chart.plot_chart(months_observations, fig_dir=chart_storage_path, show_fig=show_fig)
 
 
 def translate_dict_keys(rule1_dict, sheet_name):

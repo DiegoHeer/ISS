@@ -4,14 +4,15 @@ import json
 import pymsgbox
 from yahoofinancials import YahooFinancials
 import yfinance
-import handler
 from yahoo_fin import stock_info as si
 from datetime import datetime, timedelta
 import pandas_market_calendars as mcal
 from yahoo_earnings_calendar import YahooEarningsCalendar
 import dateutil.parser
 import calendar
+from os.path import join
 
+import handler
 from technical_analysis.ta import TA
 
 
@@ -45,6 +46,7 @@ class Portfolio:
         self.wb = None
         self.wb_path = None
         self.ws = None
+        self.ws_non_api = None
         self.ticker = None
 
         # Database parameters
@@ -70,6 +72,7 @@ class Portfolio:
         self.wb = xw.Book.caller()
         self.wb_path = self.wb.fullname
         self.ws = self.wb.sheets[sheet_name].api
+        self.ws_non_api = self.wb.sheets[sheet_name]
 
     def get_ticker_selection(self):
         self.initialize_worksheet(sheet_type="main")
@@ -402,10 +405,15 @@ class Portfolio:
         # TODO: After correcting Rule #1 metrics calculations, activate lines in this function.
         #  Also include it in the ISS translation list.
 
+    def get_ta_chart(self):
+        # Update the ta chart for the selected ticker
+        self.get_ticker_selection()
+        handler.gen_technical_analysis_chart(self.ticker, show_fig=False)
 
-def tester():
-    test = Portfolio()
-    rule1_data = test.get_rule1_data()
-    # test.fill_in_general_info_block(rule1_data)
-    # pymsgbox.confirm(test.get_rule1_data())
-    test.fill_in_rule1_analysis_block(rule1_data)
+        # Get technical analysis chart path
+        chart_storage_path = r"D:\PythonProjects\iss\iss\data\ta_charts"
+        chart_path = join(chart_storage_path, self.ticker + ".png")
+
+        # Insert the new picture into current picture location in the portfolio sheet
+        self.initialize_worksheet(sheet_type="portfolio")
+        self.ws_non_api.pictures['ta_chart'].update(chart_path)

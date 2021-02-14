@@ -115,6 +115,8 @@ def portfolio_sell():
 
 
 def portfolio_update_ta():
+    update_ta = portfolio.Portfolio()
+    update_ta.fill_in_ta_block()
     # TODO: Make functions for portfolio_update_ta
     pass
 
