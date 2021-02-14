@@ -355,7 +355,9 @@
       "Country",
       "Exchange",
       "Sector",
-      "Industry"
+      "Industry",
+      "Sticker Price",
+      "MOS Price"
     ],
     "rule1_metrics": [
       "ROIC - 10-year",
@@ -420,7 +422,9 @@
       "country",
       "exchange",
       "sector",
-      "industry"
+      "industry",
+      "sticker_price",
+      "margin_of_safety"
     ]
   }
 }

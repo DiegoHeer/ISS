@@ -254,7 +254,7 @@ class FSHandler:
                 if self.sheet_name == 'Watchlist':
                     self.watchlist_status_suggestion(i)
 
-    def dumb_non_approved_tickers(self, bool_check_included=False):
+    def dump_non_approved_tickers(self, bool_check_included=False):
         # Load the json file were the dumped tickers will be hold
         ticker_dump_dict = load_json_file(self.ticker_dump_dict_path)
 

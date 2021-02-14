@@ -76,13 +76,17 @@ def remove_non_approved_tickers():
                                    (pymsgbox.YES_TEXT, pymsgbox.NO_TEXT))
     remover = FSHandler('screener')
     if user_answer == pymsgbox.YES_TEXT:
-        remover.dumb_non_approved_tickers(True)
+        remover.dump_non_approved_tickers(True)
     else:
-        remover.dumb_non_approved_tickers(False)
+        remover.dump_non_approved_tickers(False)
+
+
+def tester():
+    portfolio.tester()
 
 
 def portfolio_ticker_selection():
-    portfolio.tester()
+    # TODO: Make functions for portfolio_ticker_selection
     pass
 
 
