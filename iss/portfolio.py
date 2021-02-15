@@ -11,6 +11,8 @@ from yahoo_earnings_calendar import YahooEarningsCalendar
 import dateutil.parser
 import calendar
 from os.path import join
+import matplotlib.pyplot as plt
+import pathlib
 
 import handler
 from technical_analysis.ta import TA
@@ -36,8 +38,10 @@ def get_min_indicator(rule1_data, indicator):
 
 
 class Portfolio:
+
     def __init__(self):
-        self.database_path = r"D:\PythonProjects\iss\iss\data\portfolio_database.json"
+        self.database_path = join(pathlib.Path(__file__).parent.absolute(), "data", "portfolio_database.json")
+        self.backend_path = join(pathlib.Path(__file__).parent.absolute(), "data", "portfolio_backend.json")
         self.main_sheet_name = "Portfolio"
         self.log_sheet_name = "Portfolio_Log"
         self.backend_sheet_name = "Portfolio_Backend"
@@ -52,6 +56,10 @@ class Portfolio:
         # Database parameters
         self.db_df = None
         self.db_dict = None
+
+        # Backend parameters
+        self.bk_df = None
+        self.bk_dict = None
 
     def __enter__(self):
         return self
@@ -93,19 +101,33 @@ class Portfolio:
 
         return self.db_df
 
-    def df_to_dict(self, index_bool=False):
-        if index_bool is True:
-            self.db_dict = self.db_df.to_dict(orient='index')
+    def df_to_dict(self, index_bool=False, dict_type='database'):
+        if dict_type == 'database':
+            if index_bool is True:
+                self.db_dict = self.db_df.to_dict(orient='index')
+            else:
+                self.db_dict = self.db_df.to_dict()
+
+            return self.db_dict
         else:
-            self.db_dict = self.db_df.to_dict()
+            if index_bool is True:
+                self.bk_dict = self.bk_df.to_dict(orient='index')
+            else:
+                self.bk_dict = self.bk_df.to_dict()
 
-        return self.db_dict
+            return self.bk_dict
 
-    def save_portfolio_dict(self):
-        if self.db_df is None and self.db_dict is None:
-            pymsgbox.alert("No input data to save in database")
+    def save_dicts_to_json(self):
+        # TODO: this function needs to be tested
+        if self.db_df is None and self.db_dict is None and self.bk_dict is None:
+            pymsgbox.alert("No input data to save in database/backend.")
+            return
         elif self.db_df is not None:
             self.db_dict = self.df_to_dict(index_bool=True)
+
+        if self.bk_dict is not None:
+            with open(self.backend_path, 'w') as file:
+                json.dump(self.bk_dict, file, indent=4, sort_keys=True)
 
         with open(self.database_path, 'w') as file:
             json.dump(self.db_dict, file, indent=4, sort_keys=True)
@@ -115,6 +137,49 @@ class Portfolio:
             self.db_dict = json.load(file)
 
         return self.db_dict
+
+    def get_backend_dict(self):
+        with open(self.backend_path, 'r') as file:
+            self.bk_dict = json.load(file)
+
+        return self.bk_dict
+
+    def save_backend_dict(self):
+        # TODO: this function needs to be tested
+        # Get dataframe with backend data
+        self.bk_df = pd.read_excel(self.wb_path, sheet_name=self.backend_sheet_name, engine='openpyxl')
+
+        # Change backend dataframe to a dictionary
+        new_bk_data = self.df_to_dict(index_bool=True, dict_type='backend')
+
+        # Get the current dictionary from the json file
+        self.get_backend_dict()
+
+        # Change the backend dictionary to include the new data
+        self.get_ticker_selection()
+        self.bk_dict[self.ticker] = new_bk_data
+
+        # Save updated dictionary
+        self.save_dicts_to_json()
+
+    def update_backend_excel(self):
+        # TODO: this function needs to be tested
+        # Get backend dictionary
+        self.get_backend_dict()
+
+        # Extract the data related to the selected ticker
+        self.get_ticker_selection()
+        ticker_data = self.bk_dict[self.ticker]
+
+        # Get an iss translation list for the backend sheet
+        result_dict = handler.translate_dict_keys(ticker_data, 'Backend')
+
+        # initialize xlwings worksheet
+        self.initialize_worksheet(sheet_type="backend")
+
+        # Enter all required data using a for loop based on the named ranges
+        for key, value in result_dict.items():
+            self.ws.Range(key).Value = ticker_data[value]
 
     def dict_to_df(self):
         self.db_df = pd.DataFrame(self.db_dict).transpose()
@@ -171,7 +236,9 @@ class Portfolio:
 
     def get_log_total_sum(self, transaction_type, sum_column, start_date=None, end_date=None):
         # Takes the portfolio dataframe, applies two filters, and sums the total column data
-        self.get_ticker_selection()
+        if self.ticker is None:
+            self.get_ticker_selection()
+
         self.get_portfolio_dict()
         self.dict_to_df()
 
@@ -201,14 +268,17 @@ class Portfolio:
 
         return shares_bought - shares_sold
 
-    def fill_in_earnings_block(self):
+    def fill_in_capital_block(self):
         capital_balance = self.get_capital_balance()
         shares_balance = self.get_shares_balance()
 
         self.initialize_worksheet(sheet_type='backend')
         stock_price = self.ws.Range("stock_price").Value
 
-        self.ws.Range("earnings").Value = (stock_price * shares_balance) - capital_balance
+        total_capital = stock_price * shares_balance
+
+        self.ws.Range("capital").Value = total_capital
+        self.ws.Range("earnings").Value = total_capital - capital_balance
 
     def fill_in_time_block(self):
         self.get_ticker_selection()
@@ -411,9 +481,53 @@ class Portfolio:
         handler.gen_technical_analysis_chart(self.ticker, show_fig=False)
 
         # Get technical analysis chart path
-        chart_storage_path = r"D:\PythonProjects\iss\iss\data\ta_charts"
+        chart_storage_path = join(pathlib.Path(__file__).parent.absolute(), "data", "ta_charts")
         chart_path = join(chart_storage_path, self.ticker + ".png")
 
         # Insert the new picture into current picture location in the portfolio sheet
         self.initialize_worksheet(sheet_type="portfolio")
         self.ws_non_api.pictures['ta_chart'].update(chart_path)
+
+    def get_portfolio_chart(self):
+        # Get first list of tickers (no duplicates)
+        self.get_portfolio_dict()
+        self.dict_to_df()
+        ticker_list = self.db_df['Ticker'].tolist()
+        ticker_list = list(set(ticker_list))
+
+        # Get total capitalization of tickers
+        total_cap_dict = dict()
+        for ticker in ticker_list:
+            self.ticker = ticker
+            stock_price = si.get_live_price(self.ticker)
+            total_cap_dict[ticker] = self.get_shares_balance() * stock_price
+
+        # Storage path for portfolio chart picture
+        chart_directory = join(pathlib.Path(__file__).parent.absolute(), "data", "portfolio_charts")
+        chart_path = join(chart_directory, "portfolio_chart.png")
+
+        # Create a 'donut' chart using the total capitalization dictionary
+        fig = plt.figure()
+        fig.patch.set_facecolor('black')
+        fig.patch.set_alpha(0.0)
+        plt.rcParams['text.color'] = 'white'
+
+        chart_circle = plt.Circle((0, 0), 0.7, color='black')
+        plt.pie([value for key, value in total_cap_dict.items()], labels=[key for key, value in total_cap_dict.items()],
+                autopct="%1.0f%%", pctdistance=0.6)
+        p = plt.gcf()
+        p.gca().add_artist(chart_circle)
+
+        # Save new figure created
+        fig.savefig(chart_path, bbox_inches="tight")
+
+        # Insert the new picture into current picture location in the portfolio sheet
+        self.initialize_worksheet(sheet_type="portfolio")
+        self.ws_non_api.pictures['portfolio_chart'].update(chart_path)
+
+
+def tester():
+    test = Portfolio()
+    # test.get_portfolio_chart()
+    # test.get_portfolio_chart()
+    test.fill_in_capital_block()

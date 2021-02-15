@@ -53,5 +53,16 @@
     "Transaction Date": "2022-12-10",
     "Type": "Buy",
     "Value": 1351.5
+  },
+      "5": {
+    "Currency": "USD",
+    "Fees": 10,
+    "Shares": 10.0,
+    "Stock Exchange": "NASDAQ",
+    "Stock Price": 3000.5,
+    "Ticker": "AMZN",
+    "Transaction Date": "2022-12-10",
+    "Type": "Buy",
+    "Value": 30005
   }
 }
