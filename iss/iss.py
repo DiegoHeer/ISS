@@ -6,9 +6,6 @@ import handler
 from handler import FSHandler
 import portfolio
 
-import pandas as pd
-import json
-
 
 def update_screener():
     update = FSHandler('screener')
@@ -91,12 +88,18 @@ def portfolio_ticker_selection():
 
 
 def portfolio_new_entry():
-    test = portfolio.Portfolio()
-    test.get_portfolio_dict()
-    pymsgbox.confirm(test.dict_to_df())
+    # Get the equity list based on the transaction log list
+    entry = portfolio.Portfolio()
+    entry.get_equity_list()
 
-    # TODO: Make functions for portfolio_new_entry
-    pass
+    # Ask new ticker to user
+    ticker = handler.ask_ticker_to_user()
+
+    # Update data validation of ticker selection in Portfolio sheet with new ticker
+    entry.update_ticker_selection_combo_box(new_ticker=ticker)
+
+    # Update complete portfolio sheet
+    # TODO: Include this function here
 
 
 def portfolio_update_all():
@@ -106,6 +109,7 @@ def portfolio_update_all():
 
 def portfolio_buy():
     # TODO: Make functions for portfolio_buy
+
     pass
 
 

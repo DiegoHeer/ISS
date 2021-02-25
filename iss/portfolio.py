@@ -1,5 +1,6 @@
 import pandas as pd
 import xlwings as xw
+from xlwings import constants
 import json
 import pymsgbox
 from yahoofinancials import YahooFinancials
@@ -13,6 +14,7 @@ import calendar
 from os.path import join
 import matplotlib.pyplot as plt
 import pathlib
+from tkinter import *
 
 import handler
 from technical_analysis.ta import TA
@@ -52,6 +54,7 @@ class Portfolio:
         self.ws = None
         self.ws_non_api = None
         self.ticker = None
+        self.equity_list = None
 
         # Database parameters
         self.db_df = None
@@ -84,20 +87,38 @@ class Portfolio:
 
     def get_ticker_selection(self):
         self.initialize_worksheet(sheet_type="main")
-
-        combo_box = self.ws.OLEObjects("TickerBox").Object
-        self.ticker = combo_box.Value
+        self.ticker = self.ws.Range("ticker_combobox").Value
 
         return self.ticker
+
+    def get_equity_list(self):
+        self.get_portfolio_dict()
+
+        self.equity_list = list()
+        for index, transaction in self.db_dict.items():
+            self.equity_list.append(transaction["Ticker"])
+
+        self.equity_list = list(set(self.equity_list))
+
+        return self.equity_list
+
+    def update_ticker_selection_combo_box(self, new_ticker):
+        self.get_equity_list()
+        self.equity_list.append(new_ticker.upper())
+
+        self.initialize_worksheet(sheet_type="main")
+
+        # Obtain constants required to include new list into validation list
+        dv_type = constants.DVType.xlValidateList
+        dv_alertstyle = constants.DVAlertStyle.xlValidAlertStop
+        dv_operator = constants.FormatConditionOperator.xlEqual
+
+        self.ws.Range("ticker_combobox").Validation.Delete()
+        self.ws.Range("ticker_combobox").Validation.Add(dv_type, dv_alertstyle, dv_operator, ",".join(self.equity_list))
 
     def excel_log_to_df(self):
         self.db_df = pd.read_excel(self.wb_path, sheet_name=self.log_sheet_name, engine='openpyxl')
         self.db_df["Transaction Date"] = self.db_df["Transaction Date"].astype(str)
-
-        return self.db_df
-
-    def excel_equities_to_df(self):
-        self.db_df = pd.read_excel(self.wb_path, sheet_name=self.equity_sheet_name, engine='openpyxl')
 
         return self.db_df
 
@@ -446,18 +467,18 @@ class Portfolio:
         self.get_ticker_selection()
 
         # Get info from portfolio equities sheet
-        self.initialize_worksheet(sheet_type='equities')
-        self.excel_equities_to_df()
-        self.db_df = self.db_df.set_index('Ticker')
-        self.df_to_dict(index_bool=True)
-
-        meaning_type = self.db_dict[self.ticker]['Meaning Type']
-        moat_type = self.db_dict[self.ticker]['Moat Type']
+        # self.initialize_worksheet(sheet_type='equities')
+        # self.excel_equities_to_df()
+        # self.db_df = self.db_df.set_index('Ticker')
+        # self.df_to_dict(index_bool=True)
+        #
+        # meaning_type = self.db_dict[self.ticker]['Meaning Type']
+        # moat_type = self.db_dict[self.ticker]['Moat Type']
 
         # Get info from Rule #1 dataset
         self.initialize_worksheet(sheet_type="backend")
-        self.ws.Range('meaning_type').Value = meaning_type
-        self.ws.Range('moat_type').Value = moat_type
+        # self.ws.Range('meaning_type').Value = meaning_type
+        # self.ws.Range('moat_type').Value = moat_type
         self.ws.Range('min_roic').Value = get_min_indicator(rule1_data, 'roic')
         # self.ws.Range('min_roe').Value = min_roe
         self.ws.Range('min_equity_growth').Value = get_min_indicator(rule1_data, 'equity')
@@ -525,9 +546,76 @@ class Portfolio:
         self.initialize_worksheet(sheet_type="portfolio")
         self.ws_non_api.pictures['portfolio_chart'].update(chart_path)
 
+    def new_transaction_entry(self):
+        pass
+
+    def transaction_entrybox(self, transaction_type):
+        # Get ticker selection
+        self.ticker = self.get_ticker_selection()
+
+        # Start a multiline GUI box for transactions
+        window = Tk()
+        window.title(f"{transaction_type} {self.ticker}")
+        # window.configure(background='black')
+        # window.geometry('200x500')
+
+        # Labels with correspondent answers or entry boxes to be shown
+        transaction_lbl = Label(window, text="Transaction: ", font=30, width=15, anchor='w')
+        transaction_lbl.grid(column=0, row=0, padx=(10, 0))
+        transaction_answer = Label(window, text=transaction_type, font=30, width=15, anchor='w')
+        transaction_answer.grid(column=1, row=0, padx=(0, 10))
+
+        ticker_lbl = Label(window, text="Ticker: ", font=20, width=15, anchor='w')
+        ticker_lbl.grid(column=0, row=1, padx=(10, 0))
+        ticker_answer = Label(window, text=self.ticker.upper(), font=30, width=15, anchor='w')
+        ticker_answer.grid(column=1, row=1, padx=(0, 10))
+
+        exchange_lbl = Label(window, text="Stock Exchange: ", font=30, width=15, anchor='w')
+        exchange_lbl.grid(column=0, row=2, padx=(10, 0))
+        exchange_entry = Entry(window, width=15, font=20)
+        exchange_entry.insert(END, 'NASDAQ')
+        exchange_entry.grid(column=1, row=2, padx=(0, 10))
+
+        date_lbl = Label(window, text="Transaction Date: ", font=30, width=15, anchor='w')
+        date_lbl.grid(column=0, row=3, padx=(10, 0))
+        date_entry = Entry(window, width=15, font=20)
+        date_entry.insert(END, datetime.today().date().strftime("%d-%m-%Y"))
+        date_entry.grid(column=1, row=3, padx=(0, 10))
+
+        currency_lbl = Label(window, text="Currency: ", font=30, width=15, anchor='w')
+        currency_lbl.grid(column=0, row=4, padx=(10, 0))
+        currency_entry = Entry(window, width=15, font=30)
+        currency_entry.insert(END, 'EUR')
+        currency_entry.grid(column=1, row=4, padx=(0, 10))
+
+        shares_lbl = Label(window, text="Shares: ", font=30, width=15, anchor='w')
+        shares_lbl.grid(column=0, row=5, padx=(10, 0))
+        shares_entry = Entry(window, width=15, font=30)
+        shares_entry.grid(column=1, row=5, padx=(0, 10))
+        shares_entry.focus()
+
+        stock_price_lbl = Label(window, text="Stock Price: ", font=30, width=15, anchor='w')
+        stock_price_lbl.grid(column=0, row=6, padx=(10, 0))
+        stock_price_entry = Entry(window, width=15, font=30)
+        stock_price_entry.grid(column=1, row=6, padx=(0, 10))
+
+        fees_lbl = Label(window, text="Fees: ", font=30, width=15, anchor='w')
+        fees_lbl.grid(column=0, row=7, padx=(10, 0))
+        fees_entry = Entry(window, width=15, font=30)
+        fees_entry.grid(column=1, row=7, padx=(0, 10))
+
+        complete_btn = Button(window, text=transaction_type, command=self.new_transaction_entry, font=20, width=10)
+        complete_btn.grid(column=1, row=9, pady=(10, 10), padx=(0, 10), sticky='e')
+
+        window.mainloop()
+
+        # TODO: function for standard text of Stock Exchange Entry
+        # TODO: function for standard text of currency
+        # TODO: transaction button function
+
 
 def tester():
     test = Portfolio()
     # test.get_portfolio_chart()
     # test.get_portfolio_chart()
-    test.fill_in_capital_block()
+    test.transaction_entrybox("Buy")
