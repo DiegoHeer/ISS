@@ -1,68 +1,68 @@
 {
-  "0": {
-    "Currency": "USD",
-    "Fees": 10,
-    "Shares": 3.0,
-    "Stock Exchange": "NASDAQ",
-    "Stock Price": 450.5,
-    "Ticker": "TSLA",
-    "Transaction Date": "2021-02-04",
-    "Type": "Buy",
-    "Value": 1351.5
-  },
-  "1": {
-    "Currency": "USD",
-    "Fees": 10,
-    "Shares": 2.0,
-    "Stock Exchange": "NASDAQ",
-    "Stock Price": 801.0,
-    "Ticker": "TSLA",
-    "Transaction Date": "2021-02-04",
-    "Type": "Sell",
-    "Value": 1602.0
-  },
-  "2": {
-    "Currency": "USD",
-    "Fees": 10,
-    "Shares": 1.15,
-    "Stock Exchange": "NASDAQ",
-    "Stock Price": 606.0,
-    "Ticker": "AAPL",
-    "Transaction Date": "2021-02-05",
-    "Type": "Buy",
-    "Value": 696.9
-  },
-  "3": {
-    "Currency": "USD",
-    "Fees": 10,
-    "Shares": 4.0,
-    "Stock Exchange": "NASDAQ",
-    "Stock Price": 500.5,
-    "Ticker": "TSLA",
-    "Transaction Date": "2021-02-10",
-    "Type": "Buy",
-    "Value": 1351.5
-  },
+    "0": {
+        "Currency": "USD",
+        "Fees": 10,
+        "Shares": 3.0,
+        "Stock Exchange": "NASDAQ",
+        "Stock Price": 450.5,
+        "Ticker": "TSLA",
+        "Transaction Date": "2021-02-04",
+        "Type": "Buy",
+        "Value": 1351.5
+    },
+    "1": {
+        "Currency": "USD",
+        "Fees": 10,
+        "Shares": 2.0,
+        "Stock Exchange": "NASDAQ",
+        "Stock Price": 801.0,
+        "Ticker": "TSLA",
+        "Transaction Date": "2021-02-04",
+        "Type": "Sell",
+        "Value": 1602.0
+    },
+    "2": {
+        "Currency": "USD",
+        "Fees": 10,
+        "Shares": 1.15,
+        "Stock Exchange": "NASDAQ",
+        "Stock Price": 606.0,
+        "Ticker": "AAPL",
+        "Transaction Date": "2021-02-05",
+        "Type": "Buy",
+        "Value": 696.9
+    },
+    "3": {
+        "Currency": "USD",
+        "Fees": 10,
+        "Shares": 4.0,
+        "Stock Exchange": "NASDAQ",
+        "Stock Price": 500.5,
+        "Ticker": "TSLA",
+        "Transaction Date": "2021-02-10",
+        "Type": "Buy",
+        "Value": 1351.5
+    },
     "4": {
-    "Currency": "USD",
-    "Fees": 10,
-    "Shares": 4.0,
-    "Stock Exchange": "NASDAQ",
-    "Stock Price": 500.5,
-    "Ticker": "TSLA",
-    "Transaction Date": "2022-12-10",
-    "Type": "Buy",
-    "Value": 1351.5
-  },
-      "5": {
-    "Currency": "USD",
-    "Fees": 10,
-    "Shares": 10.0,
-    "Stock Exchange": "NASDAQ",
-    "Stock Price": 3000.5,
-    "Ticker": "AMZN",
-    "Transaction Date": "2022-12-10",
-    "Type": "Buy",
-    "Value": 30005
-  }
+        "Currency": "USD",
+        "Fees": 10,
+        "Shares": 4.0,
+        "Stock Exchange": "NASDAQ",
+        "Stock Price": 500.5,
+        "Ticker": "TSLA",
+        "Transaction Date": "2022-12-10",
+        "Type": "Buy",
+        "Value": 1351.5
+    },
+    "5": {
+        "Currency": "USD",
+        "Fees": 10,
+        "Shares": 10.0,
+        "Stock Exchange": "NASDAQ",
+        "Stock Price": 3000.5,
+        "Ticker": "AMZN",
+        "Transaction Date": "2022-12-10",
+        "Type": "Buy",
+        "Value": 30005
+    }
 }

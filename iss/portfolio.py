@@ -1,6 +1,6 @@
 import pandas as pd
 import xlwings as xw
-from xlwings import constants
+from xlwings import constants as xl_constants
 import json
 import pymsgbox
 from yahoofinancials import YahooFinancials
@@ -11,12 +11,14 @@ import pandas_market_calendars as mcal
 from yahoo_earnings_calendar import YahooEarningsCalendar
 import dateutil.parser
 import calendar
+import os
 from os.path import join
 import matplotlib.pyplot as plt
 import pathlib
 from tkinter import *
 
 import handler
+from quickfs_scraping import api_scraping
 from technical_analysis.ta import TA
 
 
@@ -64,6 +66,17 @@ class Portfolio:
         self.bk_df = None
         self.bk_dict = None
 
+        # Form parameters
+        self.transaction_form = None
+        self.transaction_answer = None
+        self.ticker_answer = None
+        self.exchange_entry = None
+        self.date_entry = None
+        self.currency_entry = None
+        self.shares_entry = None
+        self.stock_price_entry = None
+        self.fees_entry = None
+
     def __enter__(self):
         return self
 
@@ -87,7 +100,7 @@ class Portfolio:
 
     def get_ticker_selection(self):
         self.initialize_worksheet(sheet_type="main")
-        self.ticker = self.ws.Range("ticker_combobox").Value
+        self.ticker = self.ws.Range("ticker_selection").Value
 
         return self.ticker
 
@@ -109,12 +122,13 @@ class Portfolio:
         self.initialize_worksheet(sheet_type="main")
 
         # Obtain constants required to include new list into validation list
-        dv_type = constants.DVType.xlValidateList
-        dv_alertstyle = constants.DVAlertStyle.xlValidAlertStop
-        dv_operator = constants.FormatConditionOperator.xlEqual
+        dv_type = xl_constants.DVType.xlValidateList
+        dv_alertstyle = xl_constants.DVAlertStyle.xlValidAlertStop
+        dv_operator = xl_constants.FormatConditionOperator.xlEqual
 
-        self.ws.Range("ticker_combobox").Validation.Delete()
-        self.ws.Range("ticker_combobox").Validation.Add(dv_type, dv_alertstyle, dv_operator, ",".join(self.equity_list))
+        self.ws.Range("ticker_selection").Validation.Delete()
+        self.ws.Range("ticker_selection").Validation.Add(dv_type, dv_alertstyle, dv_operator,
+                                                         ",".join(self.equity_list))
 
     def excel_log_to_df(self):
         self.db_df = pd.read_excel(self.wb_path, sheet_name=self.log_sheet_name, engine='openpyxl')
@@ -130,7 +144,7 @@ class Portfolio:
                 self.db_dict = self.db_df.to_dict()
 
             return self.db_dict
-        else:
+        elif dict_type == 'backend':
             if index_bool is True:
                 self.bk_dict = self.bk_df.to_dict(orient='index')
             else:
@@ -143,15 +157,16 @@ class Portfolio:
         if self.db_df is None and self.db_dict is None and self.bk_dict is None:
             pymsgbox.alert("No input data to save in database/backend.")
             return
-        elif self.db_df is not None:
+        elif self.db_dict is None and self.db_df is not None:
             self.db_dict = self.df_to_dict(index_bool=True)
 
         if self.bk_dict is not None:
             with open(self.backend_path, 'w') as file:
-                json.dump(self.bk_dict, file, indent=4, sort_keys=True)
+                json.dump(self.bk_dict, file, indent=4, sort_keys=True, default=str)
 
-        with open(self.database_path, 'w') as file:
-            json.dump(self.db_dict, file, indent=4, sort_keys=True)
+        if self.db_dict is not None:
+            with open(self.database_path, 'w') as file:
+                json.dump(self.db_dict, file, indent=4, sort_keys=True, default=str)
 
     def get_portfolio_dict(self):
         with open(self.database_path, 'r') as file:
@@ -166,12 +181,18 @@ class Portfolio:
         return self.bk_dict
 
     def save_backend_dict(self):
-        # TODO: this function needs to be tested
+        # Get workbook path
+        self.initialize_worksheet("backend")
+
         # Get dataframe with backend data
         self.bk_df = pd.read_excel(self.wb_path, sheet_name=self.backend_sheet_name, engine='openpyxl')
 
+        # Parse backend dataframe to make it compatible
+        self.bk_df = self.bk_df.drop(columns="Block")
+        self.bk_df.set_index("Parameter", inplace=True)
+
         # Change backend dataframe to a dictionary
-        new_bk_data = self.df_to_dict(index_bool=True, dict_type='backend')
+        new_bk_data = self.df_to_dict(index_bool=False, dict_type='backend')
 
         # Get the current dictionary from the json file
         self.get_backend_dict()
@@ -184,23 +205,30 @@ class Portfolio:
         self.save_dicts_to_json()
 
     def update_backend_excel(self):
-        # TODO: this function needs to be tested
         # Get backend dictionary
         self.get_backend_dict()
 
         # Extract the data related to the selected ticker
         self.get_ticker_selection()
-        ticker_data = self.bk_dict[self.ticker]
+
+        ticker_data = None
+        if self.ticker in self.bk_dict:
+            ticker_data = self.bk_dict[self.ticker]
+        else:
+            pymsgbox.alert(
+                f"Backend storage file doesn't yet contain data about {self.ticker}. Please update sheet first",
+                "No data to be used")
+            exit()
 
         # Get an iss translation list for the backend sheet
-        result_dict = handler.translate_dict_keys(ticker_data, 'Backend')
+        result_dict = handler.translate_dict_keys(ticker_data['Value'], 'Backend')
 
         # initialize xlwings worksheet
         self.initialize_worksheet(sheet_type="backend")
 
         # Enter all required data using a for loop based on the named ranges
         for key, value in result_dict.items():
-            self.ws.Range(key).Value = ticker_data[value]
+            self.ws.Range(key).Value = value
 
     def dict_to_df(self):
         self.db_df = pd.DataFrame(self.db_dict).transpose()
@@ -306,7 +334,7 @@ class Portfolio:
         self.initialize_worksheet(sheet_type="backend")
 
         today = datetime.today().date()
-        self.ws.Range('last_update').Value = today.strftime("%d/%m/%Y")
+        self.ws.Range('last_update').Value = today.strftime("%x %X")
 
         # Gets the functioning dates in a a dataframe format of the stock exchange of the stock
         stock_exchange = self.ws.Range("exchange").Value
@@ -315,6 +343,10 @@ class Portfolio:
             if stock_exchange.upper() in exchange_name.upper() or exchange_name.upper() in stock_exchange.upper():
                 exchange_calendar = mcal.get_calendar(exchange_name)
                 break
+
+        if exchange_calendar is None:
+            pymsgbox.alert(f"Stock exchange for {self.ticker} couldn't be found in stock exchange calender")
+            return
 
         if stock_exchange is None:
             pymsgbox.alert("No valid calendar could be found of the stock exchange linked to the selected ticker")
@@ -341,13 +373,24 @@ class Portfolio:
         self.get_portfolio_dict()
         self.dict_to_df()
         stock_df = self.db_df.loc[self.db_df['Ticker'] == self.ticker]
-        inv_start_date = datetime.strptime(stock_df['Transaction Date'].iloc[0], '%Y-%m-%d').strftime("%x %X")
+        if stock_df.empty:
+            inv_start_date = "-"
+        else:
+            inv_start_date = datetime.strptime(stock_df['Transaction Date'].iloc[0], '%Y-%m-%d').strftime("%x %X")
 
         buy_df = stock_df.loc[stock_df['Type'] == 'Buy']
         sell_df = stock_df.loc[stock_df['Type'] == 'Sell']
 
-        last_buy_date = datetime.strptime(buy_df['Transaction Date'].iloc[-1], '%Y-%m-%d').strftime("%x %X")
-        last_sell_date = datetime.strptime(sell_df['Transaction Date'].iloc[-1], '%Y-%m-%d').strftime("%x %X")
+        # Check if the dataframes really contain dates to be used for time block
+        if buy_df.empty:
+            last_buy_date = "-"
+        else:
+            last_buy_date = datetime.strptime(buy_df['Transaction Date'].iloc[-1], '%Y-%m-%d').strftime("%x %X")
+
+        if sell_df.empty:
+            last_sell_date = "-"
+        else:
+            last_sell_date = datetime.strptime(sell_df['Transaction Date'].iloc[-1], '%Y-%m-%d').strftime("%x %X")
 
         self.ws.Range('investment_start_date').Value = inv_start_date
         self.ws.Range('last_buy_date').Value = last_buy_date
@@ -496,14 +539,15 @@ class Portfolio:
         # TODO: After correcting Rule #1 metrics calculations, activate lines in this function.
         #  Also include it in the ISS translation list.
 
-    def get_ta_chart(self):
-        # Update the ta chart for the selected ticker
-        self.get_ticker_selection()
-        handler.gen_technical_analysis_chart(self.ticker, show_fig=False)
-
+    def get_ta_chart(self, bool_update=True):
         # Get technical analysis chart path
         chart_storage_path = join(pathlib.Path(__file__).parent.absolute(), "data", "ta_charts")
         chart_path = join(chart_storage_path, self.ticker + ".png")
+
+        # Update the ta chart for the selected ticker or if chart doesn't exists in data folder
+        if bool_update is True or not os.path.exists(chart_path):
+            self.get_ticker_selection()
+            handler.gen_technical_analysis_chart(self.ticker, show_fig=False)
 
         # Insert the new picture into current picture location in the portfolio sheet
         self.initialize_worksheet(sheet_type="portfolio")
@@ -547,75 +591,162 @@ class Portfolio:
         self.ws_non_api.pictures['portfolio_chart'].update(chart_path)
 
     def new_transaction_entry(self):
-        pass
+        # Apply simple assertions to check if data entered makes sense
+        try:
+            date = datetime.strptime(self.date_entry.get(), "%d-%m-%Y")
+        except ValueError:
+            pymsgbox.alert("Date contains error. Please enter date correctly.", "Value Error")
+            return
+
+        if len(self.currency_entry.get()) != 3 or not self.currency_entry.get().isalpha():
+            pymsgbox.alert("Currency entered contains error. Please enter currency using 3 capital letters.",
+                           "TypeValue Error")
+            return
+
+        if not self.shares_entry.get().isnumeric():
+            pymsgbox.alert("Shares entered contains error. Please use only numbers.",
+                           "TypeValue Error")
+            return
+
+        if not self.stock_price_entry.get().isnumeric():
+            pymsgbox.alert("Stock Price entered contains error. Please use only numbers.",
+                           "TypeValue Error")
+            return
+
+        if not self.fees_entry.get().isnumeric():
+            pymsgbox.alert("Fees entered contains error. Please use only numbers.",
+                           "TypeValue Error")
+            return
+
+        # Get portfolio database dictionary
+        self.get_portfolio_dict()
+
+        # Add new transaction to dictionary
+        new_id = len(self.db_dict)
+
+        self.db_dict[f"{new_id}"] = {}
+        self.db_dict[f"{new_id}"]["Type"] = self.transaction_answer.cget("text")
+        self.db_dict[f"{new_id}"]["Ticker"] = self.ticker_answer.cget("text")
+        self.db_dict[f"{new_id}"]["Stock Exchange"] = self.exchange_entry.get()
+        self.db_dict[f"{new_id}"]["Transaction Date"] = date.strftime("%Y-%m-%d")
+        self.db_dict[f"{new_id}"]["Currency"] = self.currency_entry.get()
+        self.db_dict[f"{new_id}"]["Shares"] = float(self.shares_entry.get())
+        self.db_dict[f"{new_id}"]["Stock Price"] = float(self.stock_price_entry.get())
+
+        value = float(self.shares_entry.get()) * float(self.stock_price_entry.get())
+        self.db_dict[f"{new_id}"]["Value"] = round(value, 1)
+        self.db_dict[f"{new_id}"]["Fees"] = float(self.fees_entry.get())
+
+        # Save the portfolio dictionary
+        self.save_dicts_to_json()
+
+        # Close the transaction form
+        self.transaction_form.destroy()
 
     def transaction_entrybox(self, transaction_type):
         # Get ticker selection
         self.ticker = self.get_ticker_selection()
 
         # Start a multiline GUI box for transactions
-        window = Tk()
-        window.title(f"{transaction_type} {self.ticker}")
+        self.transaction_form = Tk()
+        self.transaction_form.title(f"{transaction_type} {self.ticker}")
         # window.configure(background='black')
         # window.geometry('200x500')
 
         # Labels with correspondent answers or entry boxes to be shown
-        transaction_lbl = Label(window, text="Transaction: ", font=30, width=15, anchor='w')
+        transaction_lbl = Label(self.transaction_form, text="Transaction: ", font=30, width=15, anchor='w')
         transaction_lbl.grid(column=0, row=0, padx=(10, 0))
-        transaction_answer = Label(window, text=transaction_type, font=30, width=15, anchor='w')
-        transaction_answer.grid(column=1, row=0, padx=(0, 10))
+        self.transaction_answer = Label(self.transaction_form, text=transaction_type, font=30, width=15, anchor='w')
+        self.transaction_answer.grid(column=1, row=0, padx=(0, 10))
 
-        ticker_lbl = Label(window, text="Ticker: ", font=20, width=15, anchor='w')
+        ticker_lbl = Label(self.transaction_form, text="Ticker: ", font=20, width=15, anchor='w')
         ticker_lbl.grid(column=0, row=1, padx=(10, 0))
-        ticker_answer = Label(window, text=self.ticker.upper(), font=30, width=15, anchor='w')
-        ticker_answer.grid(column=1, row=1, padx=(0, 10))
+        self.ticker_answer = Label(self.transaction_form, text=self.ticker.upper(), font=30, width=15, anchor='w')
+        self.ticker_answer.grid(column=1, row=1, padx=(0, 10))
 
-        exchange_lbl = Label(window, text="Stock Exchange: ", font=30, width=15, anchor='w')
+        exchange_lbl = Label(self.transaction_form, text="Stock Exchange: ", font=30, width=15, anchor='w')
         exchange_lbl.grid(column=0, row=2, padx=(10, 0))
-        exchange_entry = Entry(window, width=15, font=20)
-        exchange_entry.insert(END, 'NASDAQ')
-        exchange_entry.grid(column=1, row=2, padx=(0, 10))
+        self.exchange_entry = Entry(self.transaction_form, width=15, font=20)
+        self.exchange_entry.insert(END, self.get_stock_exchange())
+        self.exchange_entry.grid(column=1, row=2, padx=(0, 10))
 
-        date_lbl = Label(window, text="Transaction Date: ", font=30, width=15, anchor='w')
+        date_lbl = Label(self.transaction_form, text="Transaction Date: ", font=30, width=15, anchor='w')
         date_lbl.grid(column=0, row=3, padx=(10, 0))
-        date_entry = Entry(window, width=15, font=20)
-        date_entry.insert(END, datetime.today().date().strftime("%d-%m-%Y"))
-        date_entry.grid(column=1, row=3, padx=(0, 10))
+        self.date_entry = Entry(self.transaction_form, width=15, font=20)
+        self.date_entry.insert(END, datetime.today().date().strftime("%d-%m-%Y"))
+        self.date_entry.grid(column=1, row=3, padx=(0, 10))
 
-        currency_lbl = Label(window, text="Currency: ", font=30, width=15, anchor='w')
+        currency_lbl = Label(self.transaction_form, text="Currency: ", font=30, width=15, anchor='w')
         currency_lbl.grid(column=0, row=4, padx=(10, 0))
-        currency_entry = Entry(window, width=15, font=30)
-        currency_entry.insert(END, 'EUR')
-        currency_entry.grid(column=1, row=4, padx=(0, 10))
+        self.currency_entry = Entry(self.transaction_form, width=15, font=30)
+        self.currency_entry.insert(END, self.get_currency())
+        self.currency_entry.grid(column=1, row=4, padx=(0, 10))
 
-        shares_lbl = Label(window, text="Shares: ", font=30, width=15, anchor='w')
+        shares_lbl = Label(self.transaction_form, text="Shares: ", font=30, width=15, anchor='w')
         shares_lbl.grid(column=0, row=5, padx=(10, 0))
-        shares_entry = Entry(window, width=15, font=30)
-        shares_entry.grid(column=1, row=5, padx=(0, 10))
-        shares_entry.focus()
+        self.shares_entry = Entry(self.transaction_form, width=15, font=30)
+        self.shares_entry.grid(column=1, row=5, padx=(0, 10))
+        self.shares_entry.focus()
 
-        stock_price_lbl = Label(window, text="Stock Price: ", font=30, width=15, anchor='w')
+        stock_price_lbl = Label(self.transaction_form, text="Stock Price: ", font=30, width=15, anchor='w')
         stock_price_lbl.grid(column=0, row=6, padx=(10, 0))
-        stock_price_entry = Entry(window, width=15, font=30)
-        stock_price_entry.grid(column=1, row=6, padx=(0, 10))
+        self.stock_price_entry = Entry(self.transaction_form, width=15, font=30)
+        self.stock_price_entry.grid(column=1, row=6, padx=(0, 10))
 
-        fees_lbl = Label(window, text="Fees: ", font=30, width=15, anchor='w')
+        fees_lbl = Label(self.transaction_form, text="Fees: ", font=30, width=15, anchor='w')
         fees_lbl.grid(column=0, row=7, padx=(10, 0))
-        fees_entry = Entry(window, width=15, font=30)
-        fees_entry.grid(column=1, row=7, padx=(0, 10))
+        self.fees_entry = Entry(self.transaction_form, width=15, font=30)
+        self.fees_entry.grid(column=1, row=7, padx=(0, 10))
 
-        complete_btn = Button(window, text=transaction_type, command=self.new_transaction_entry, font=20, width=10)
+        complete_btn = Button(self.transaction_form, text=transaction_type, command=self.new_transaction_entry, font=20,
+                              width=10)
         complete_btn.grid(column=1, row=9, pady=(10, 10), padx=(0, 10), sticky='e')
 
-        window.mainloop()
+        self.transaction_form.mainloop()
 
-        # TODO: function for standard text of Stock Exchange Entry
-        # TODO: function for standard text of currency
-        # TODO: transaction button function
+    def get_stock_exchange(self):
+        # Get portfolio database
+        self.get_portfolio_dict()
+
+        # Change portfolio database to dataframe
+        self.dict_to_df()
+
+        # Get ticker selection
+        self.get_ticker_selection()
+
+        # Search if the ticker exists in dataframe. If yes, then filter out the first stock exchange used.
+        filter_df = self.db_df.loc[self.db_df['Ticker'] == self.ticker]
+        if not filter_df.empty:
+            stock_exchange = filter_df['Stock Exchange'][0]
+        else:
+            # If not, use a scraping function to obtain stock exchange for selected ticker
+            stock_exchange = api_scraping.get_stock_exchange(self.ticker)
+
+        return stock_exchange
+
+    def get_currency(self):
+        # Get portfolio database
+        self.get_portfolio_dict()
+
+        # Change portfolio database to dataframe
+        self.dict_to_df()
+
+        # Get ticker selection
+        self.get_ticker_selection()
+
+        # Search if the ticker exists in dataframe. If yes, then filter out the first stock exchange used.
+        filter_df = self.db_df.loc[self.db_df['Ticker'] == self.ticker]
+        if not filter_df.empty:
+            currency = filter_df['Currency'][0]
+        else:
+            # If not, use a scraping function to obtain currency used for selected ticker
+            currency = api_scraping.get_currency(self.ticker)
+
+        return currency
 
 
 def tester():
     test = Portfolio()
     # test.get_portfolio_chart()
     # test.get_portfolio_chart()
-    test.transaction_entrybox("Buy")
+    test.fill_in_time_block()

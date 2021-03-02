@@ -1,6 +1,5 @@
 import pymsgbox
 import webbrowser
-import xlwings as xw
 
 import handler
 from handler import FSHandler
@@ -53,10 +52,10 @@ def see_technical_analysis_chart():
 
 
 def see_trading_view_chart(sheet_name=None):
-    if sheet_name is not None:
-        wb = xw.Book.caller()
-        ws = wb.sheets[sheet_name].api
-        ticker = ws.OLEObjects("TickerBox").Object.Value
+    if sheet_name == 'Portfolio':
+        access = portfolio.Portfolio()
+        ticker = access.get_ticker_selection()
+
     else:
         ticker = handler.ask_ticker_to_user()
 
@@ -83,51 +82,96 @@ def tester():
 
 
 def portfolio_ticker_selection():
-    # TODO: Make functions for portfolio_ticker_selection
-    pass
+    ticker_change = portfolio.Portfolio()
+
+    # Get temporary data from portfolio backend json
+    ticker_change.update_backend_excel()
+
+    # Get the Technical Analysis chart already made for the selected ticker
+    ticker_change.get_ta_chart(bool_update=False)
 
 
 def portfolio_new_entry():
-    # Get the equity list based on the transaction log list
-    entry = portfolio.Portfolio()
-    entry.get_equity_list()
+    with portfolio.Portfolio() as entry:
+        # Get the equity list based on the transaction log list
+        entry.get_equity_list()
 
-    # Ask new ticker to user
-    ticker = handler.ask_ticker_to_user()
+        # Ask new ticker to user
+        ticker = handler.ask_ticker_to_user()
 
-    # Update data validation of ticker selection in Portfolio sheet with new ticker
-    entry.update_ticker_selection_combo_box(new_ticker=ticker)
+        # Update data validation of ticker selection in Portfolio sheet with new ticker
+        entry.update_ticker_selection_combo_box(new_ticker=ticker)
+
+        # Show buy transaction form to user
+        entry.transaction_entrybox("Buy")
 
     # Update complete portfolio sheet
-    # TODO: Include this function here
+    portfolio_update_all()
 
 
 def portfolio_update_all():
-    # TODO: Make functions for portfolio_update_all
-    pass
+    update_all = portfolio.Portfolio()
+
+    # Get important data for updates
+    rule1_data = update_all.get_rule1_data()
+
+    # Update all main blocks
+    update_all.fill_in_summary_block()
+    update_all.fill_in_general_info_block(rule1_data)
+    update_all.fill_in_stock_price_block()
+    update_all.fill_in_capital_block()
+    update_all.fill_in_time_block()
+    update_all.fill_in_status_block()
+    update_all.fill_in_balance_block()
+    update_all.fill_in_profits_block()
+    update_all.fill_in_ta_block()
+    update_all.fill_in_rule1_analysis_block(rule1_data)
+
+    # Update TA chart
+    update_all.get_ta_chart()
+
+    # Update Portfolio chart
+    update_all.get_portfolio_chart()
+
+    # Store new data in the portfolio backend json file
+    update_all.save_backend_dict()
 
 
 def portfolio_buy():
-    # TODO: Make functions for portfolio_buy
-
-    pass
+    buy = portfolio.Portfolio()
+    buy.transaction_entrybox("Buy")
 
 
 def portfolio_sell():
-    # TODO: Make functions for portfolio_sell
-    pass
+    sell = portfolio.Portfolio()
+    sell.transaction_entrybox("Sell")
 
 
 def portfolio_update_ta():
     update_ta = portfolio.Portfolio()
+
+    # Updates the Technical Analysis text block
     update_ta.fill_in_ta_block()
-    # TODO: Make functions for portfolio_update_ta
-    pass
+
+    # Update the TA Chart
+    update_ta.get_ta_chart()
+
+    # Update Portfolio Chart
+    update_ta.get_portfolio_chart()
+
+    # Store new data in the portfolio backend json file
+    update_ta.save_backend_dict()
 
 
 def portfolio_update_rule1():
-    # TODO: Make functions for portfolio_update_rule1
-    pass
+    update_rule1 = portfolio.Portfolio()
+
+    # Fill in Rule #1 block
+    rule1_data = update_rule1.get_rule1_data()
+    update_rule1.fill_in_rule1_analysis_block(rule1_data)
+
+    # Store new data in the portfolio backend json file
+    update_rule1.save_backend_dict()
 
 
 def portfolio_open_last_annual_report():
