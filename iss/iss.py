@@ -2,8 +2,10 @@ import pymsgbox
 import webbrowser
 
 import handler
-from handler import FSHandler
 import portfolio
+from handler import FSHandler
+from portfolio import Portfolio
+from sec import SEC
 
 
 def update_screener():
@@ -53,7 +55,7 @@ def see_technical_analysis_chart():
 
 def see_trading_view_chart(sheet_name=None):
     if sheet_name == 'Portfolio':
-        access = portfolio.Portfolio()
+        access = Portfolio()
         ticker = access.get_ticker_selection()
 
     else:
@@ -82,7 +84,7 @@ def tester():
 
 
 def portfolio_ticker_selection():
-    ticker_change = portfolio.Portfolio()
+    ticker_change = Portfolio()
 
     # Get temporary data from portfolio backend json
     ticker_change.update_backend_excel()
@@ -92,7 +94,7 @@ def portfolio_ticker_selection():
 
 
 def portfolio_new_entry():
-    with portfolio.Portfolio() as entry:
+    with Portfolio() as entry:
         # Get the equity list based on the transaction log list
         entry.get_equity_list()
 
@@ -110,7 +112,7 @@ def portfolio_new_entry():
 
 
 def portfolio_update_all():
-    update_all = portfolio.Portfolio()
+    update_all = Portfolio()
 
     # Get important data for updates
     rule1_data = update_all.get_rule1_data()
@@ -138,17 +140,17 @@ def portfolio_update_all():
 
 
 def portfolio_buy():
-    buy = portfolio.Portfolio()
+    buy = Portfolio()
     buy.transaction_entrybox("Buy")
 
 
 def portfolio_sell():
-    sell = portfolio.Portfolio()
+    sell = Portfolio()
     sell.transaction_entrybox("Sell")
 
 
 def portfolio_update_ta():
-    update_ta = portfolio.Portfolio()
+    update_ta = Portfolio()
 
     # Updates the Technical Analysis text block
     update_ta.fill_in_ta_block()
@@ -164,7 +166,7 @@ def portfolio_update_ta():
 
 
 def portfolio_update_rule1():
-    update_rule1 = portfolio.Portfolio()
+    update_rule1 = Portfolio()
 
     # Fill in Rule #1 block
     rule1_data = update_rule1.get_rule1_data()
@@ -175,13 +177,13 @@ def portfolio_update_rule1():
 
 
 def portfolio_open_last_annual_report():
-    # TODO: Make functions for portfolio_open_last_annual_report
-    pass
+    report = SEC()
+    report.open_report(bool_annual=True)
 
 
 def portfolio_open_last_quarterly_report():
-    # TODO: Make functions for portfolio_open_last_quarterly_report
-    pass
+    report = SEC()
+    report.open_report(bool_annual=False)
 
 
 def portfolio_still_to_be_defined():
